@@ -35,10 +35,10 @@ void GpuRegistration::setup(ofProtonect2* protonect, float scale) {
     const float mask_scale = 3.0;
     
     ldepth_work_fbo.allocate(1920 / mask_scale, 1080 / mask_scale, GL_RGB32F_ARB);
-    ldepth_work_fbo.getTextureReference().setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
+    ldepth_work_fbo.getTexture().setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
     for (ofFbo& ldepth_fbo : ldepth_fbos) {
         ldepth_fbo.allocate(1920 / mask_scale, 1080 / mask_scale, GL_RGB32F_ARB);
-        ldepth_fbo.getTextureReference().setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
+        ldepth_fbo.getTexture().setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
     }
     
     float mx, my;
@@ -72,9 +72,8 @@ void GpuRegistration::setup(ofProtonect2* protonect, float scale) {
                   if (dz == 0.0) {
                       dz = 65535.0;
                   }
-                  vec4 worldpos = vec4(cmap.x * inv_mask_scale,
-                                       cmap.y * inv_mask_scale, -dz / 65535.0, 1.0);
-                  gl_Position = gl_ModelViewProjectionMatrix * worldpos;
+                  vec4 worldpos = vec4(gl_MultiTexCoord0.xy, 0.0*-dz / 65535.0, 1.0);
+                  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
                   gl_FrontColor = cmap;
                   gl_TexCoord[0] = gl_MultiTexCoord0;
               }
@@ -262,7 +261,7 @@ void GpuRegistration::update(ofTexture& depth_tex, ofTexture& color_tex, bool pr
         glDisable(GL_POINT_SMOOTH);
         ofSetupScreenOrtho();
         c_vert_shader.begin();
-        c_vert_shader.setUniformTexture("tex", regist_fbo.getTextureReference(1), 0);
+        c_vert_shader.setUniformTexture("tex", regist_fbo.getTexture(1), 0);
         m.draw();
         c_vert_shader.end();
         ofDisableDepthTest();
@@ -283,10 +282,10 @@ void GpuRegistration::update(ofTexture& depth_tex, ofTexture& color_tex, bool pr
     {
         ofClear(0);
         c_mask_shader.begin();
-        c_mask_shader.setUniformTexture("color_depth", ldepth_fbo.getTextureReference(), 1);
-        c_mask_shader.setUniformTexture("color_depth_ref", ldepth_fbos[1-ldepth_index].getTextureReference(), 2);
+        c_mask_shader.setUniformTexture("color_depth", ldepth_fbo.getTexture(), 1);
+        c_mask_shader.setUniformTexture("color_depth_ref", ldepth_fbos[1-ldepth_index].getTexture(), 2);
         c_mask_shader.setUniformTexture("color", color_tex, 3);
-        regist_fbo.getTextureReference(1).draw(0, 0);
+        regist_fbo.getTexture(1).draw(0, 0);
         c_mask_shader.end();
     }
     masked_regist_fbo.end();
